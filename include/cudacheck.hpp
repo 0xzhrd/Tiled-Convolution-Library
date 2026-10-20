@@ -11,9 +11,9 @@
         if(status__ != cudaSuccess)                                         \
         {                                                                   \
             std::ostringstream oss__;                                       \
-            oss__ << "CUDA error at " << FILE << ':' << LINE << " in '"     \
+            oss__ << "CUDA error at " << __FILE__ << ':' << __LINE__ << " in '"     \
             << #call << "': " << cudaGetErrorString(status__) << "(code "   \
             << static_cast<int>(status__) << ')';                           \
-            throw std::runtime_error(oss__.str());                          \   
+            throw std::runtime_error(oss__.str());                          \
         }                                                                   \
     } while(0)                                                              \
