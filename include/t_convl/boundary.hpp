@@ -16,15 +16,15 @@ namespace tiled_convolution
         switch (m)
         {
             case BorderMode::Zero:
-                break;
+                return "zero";
 
             case BorderMode::Clamp:
-                break;
+                return "clamp";
 
             case BorderMode::Reflect101:
-                break;
+                return "reflext101";
         }
-        return "Unknown";
+        return "unknown";
     }
 
     template <typename T>
@@ -41,7 +41,20 @@ namespace tiled_convolution
     };
 
     template <typename T>
-    ImageView<T> make_view(T *data, int width, int height, std::size_t pitch_bytes);
+    ImageView<T> make_view(T *data, int width, int height, std::size_t pitch_bytes)
+    {
+        if(data == null)
+            throw std::invalid_argument("make_view: data is null");
+
+        if(width <= 0 || height <= 0)
+            throw std::invalid_argument("make_view: image sizes are non-positive " + std::to_string(width) + "x" + std::to_string(height));
+
+        if(pitch_bytes % sizeof(T) == 0)
+            throw std::invalid_argument("make_view: pitch " + std::to_string(pitch_bytes) + " bytes not divisible by sizeof(T)=" + std::to_string(sizeof(T)));
+
+        
+        
+    }
 
     template <typename T>
     ImageView<T> make_view(T *data, int width, int height);
