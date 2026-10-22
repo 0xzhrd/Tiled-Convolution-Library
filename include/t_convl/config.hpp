@@ -13,7 +13,8 @@
 namespace tiled_convolution
 {
     constexpr int max_filter_radius = 15;
-    
+    constexpr int max_filter_width  = 2 * max_filter_radius + 1;
+    constexpr int max_filter_taps   = max_filter_width * max_filter_width;
 }
 
 
