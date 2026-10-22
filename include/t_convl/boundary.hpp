@@ -119,7 +119,7 @@ namespace tiled_convolution
         static constexpr BorderMode mode = BorderMode::Reflect101;
         TILED_CONV static constexpr int remap(int x, int n)
         {
-            return (n - 1) - detail::iabs((n - 1) - detail::iabs(x));
+            return (n - 1) - detail::int_abs((n - 1) - detail::int_abs(x));
         }
 
         TILED_CONV static constexpr bool supports(int n, int r)
@@ -176,7 +176,7 @@ namespace tiled_convolution
 
     namespace detail 
     {
-        TILED_CONV constexpr int iabs(int v )
+        TILED_CONV constexpr int int_abs(int v )
         {
             return v < 0 ? -v : v;
         }
