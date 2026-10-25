@@ -77,7 +77,7 @@ namespace tiled_convolution
             if((in || filter || out || abs_sum) == nullptr)
                 throw std::invalid_argument("reference: null buffer");
 
-            const int fw = filter_width(r);
+            const int fw = filter_width(rad);
             for(int y = 0; y < h; ++y)
             {
                 for(int x = 0; x < w; ++x)
@@ -85,14 +85,14 @@ namespace tiled_convolution
                     double sum = 0.0;
                     double mag = 0.0;
 
-                    for(int dy = -r; dy <= r; ++dy)
+                    for(int dy = -rad; dy <= rad; ++dy)
                     {
                         bool row_ok = false;
                         const int sy = resolve(y + dy, h, mode, row_ok);
                         if(!row_ok)
                             continue;
 
-                        for(int dx = -r; dx <= r; ++dx)
+                        for(int dx = -rad; dx <= rad; ++dx)
                         {
                             bool col_ok = false;
                             const int sx = resolve(x + dx, w, mode, col_ok);
@@ -100,13 +100,83 @@ namespace tiled_convolution
                                 continue;
 
                             const double p = static_cast<double>(in[static_cast<std::size_t>(sy) * w + sx]);
+                            const double f = static_cast<double>(filter[(dy + rad) * fw + (dy + rad )]);
 
-                            
+                            sum += f * p;
+                            mag += std::fabs(f) * std::fabs(p);
                         }
                     }
+                    const std::size_t i = static_cast<std::size_t>(y) * w + x;
+                    out[i] = static_cast<float>(sum);
+                    abs_sum[i] = mag;
                 }
             }
         }
+
+        inline std::vector<float> flip(const float *filter, int rad)
+        {
+            const int taps = filter_width(rad) * filter_width(rad);
+            std::vector<float> flipped(static_cast<std::size_t>(taps));
+
+            for(int k = 0; k < taps; ++k)
+            {
+                flipped[static_cast<std::size_t>(taps - 1 - k)] = filter[k];
+            }
+            return(flipped);
+        }
+
+        inline double gamma_fp32(int n)
+        {
+            const double u = static_cast<double> (std::numeric_limits<float>::epsilon()) / 2.0;
+            const double nu = n * u;
+
+            return(nu/(1.0 - nu));
+        }
+        
+        struct CompareResult
+        {
+            double max_abs_err;
+            double worst_ratio;
+            int worst_x;
+            int worst_y;
+            long failing_pixels;
+        };
+        inline CompareResult compare(const float *gpu, const float *ref, const double *abs_sum, int w, int h, int taps)
+        {
+            const double g = gamma_fp32(taps + 1);
+            const double floor = static_cast<double>(std::numeric_limits<float>::min());
+
+            CompareResult res{0.0, 0.0, -1, -1, 0};
+
+            for(int y = 0; y < h; ++y)
+            {
+                for(int x = 0; x < w; ++x)
+                {
+                    const std::size_t i = static_cast<std::size_t>(y) * w + x;
+                    const double err = std::fabs(static_cast<double>(gpu[i] - static_cast<double>(ref[i])));
+                    const double bound = g * abs_sum[i] + floor;
+                    double ratio = err/bound;
+
+                    if(std::isnan(ratio))
+                        ratio = std::numeric_limits<double>::infinity();
+
+                    if(err > res.max_abs_err)
+                        res.max_abs_err = err;
+
+                    if(ratio > res.worst_ratio)
+                    {
+                        res.worst_ratio = ratio;
+                        res.worst_x = x;
+                        res.worst_y = y;
+                    }
+
+                    if(ratio > 1.0)
+                        ++res.failing_pixels;
+                }
+            }
+            return(res);
+        }
+
     }
 }
 
