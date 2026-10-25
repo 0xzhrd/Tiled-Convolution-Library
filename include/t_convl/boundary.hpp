@@ -110,7 +110,7 @@ namespace tiled_convolution
         template <typename T>
         TILED_CONV static typename Image<T>::value_type load(Image<T> img, int x, int y)
         {
-            return img.row(remap(y, img,height))[remap(x, img.width)];
+            return img.row(remap(y, img.height))[remap(x, img.width)];
         }
     };
 
