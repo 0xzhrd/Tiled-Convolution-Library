@@ -1,6 +1,5 @@
 /*
-host only reference that every GPU kernel is checked against
-
+host only reference implementation that every GPU kernel is checked against
 */
 #pragma once
 
