@@ -1,5 +1,7 @@
 /*
 host only reference implementation that every GPU kernel is checked against
+this file must never call the border policies or ImageView
+the filter layout is filter[(dy + r)*fw + (dx + r)]
 */
 #pragma once
 
@@ -29,6 +31,7 @@ namespace tiled_convolution
                         valid = false;
                         return(0);
                     }
+                    return(0);
 
                 case BorderMode::Clamp:
                     if(coord < 0)
@@ -62,10 +65,10 @@ namespace tiled_convolution
                 throw std::invalid_argument("reference: non-positive size " + std::to_string(w) + "x" + std::to_string(h));
 
             if(rad < 0 || rad > max_filter_radius)
-                throw std::invalid_argument("reference: radius less that 0 or greater than " + std::to_string(max_filter_radius));
+                throw std::invalid_argument("reference: radius less than 0 or greater than " + std::to_string(max_filter_radius));
 
             if(mode == BorderMode::Reflect101 && (w <= rad || h <= rad))
-                throw std::invalid_argument("reference: too short in any made");
+                throw std::invalid_argument("reference: too short in any mode");
         }
 
         template <typename T>
@@ -73,7 +76,7 @@ namespace tiled_convolution
         {
             check_args(w, h, rad, mode);
 
-            if((in || filter || out || abs_sum) == nullptr)
+            if(in == nullptr || filter == nullptr || out == nullptr || abs_sum == nullptr)
                 throw std::invalid_argument("reference: null buffer");
 
             const int fw = filter_width(rad);
@@ -99,7 +102,7 @@ namespace tiled_convolution
                                 continue;
 
                             const double p = static_cast<double>(in[static_cast<std::size_t>(sy) * w + sx]);
-                            const double f = static_cast<double>(filter[(dy + rad) * fw + (dy + rad )]);
+                            const double f = static_cast<double>(filter[(dy + rad) * fw + (dx + rad )]);
 
                             sum += f * p;
                             mag += std::fabs(f) * std::fabs(p);
@@ -152,7 +155,7 @@ namespace tiled_convolution
                 for(int x = 0; x < w; ++x)
                 {
                     const std::size_t i = static_cast<std::size_t>(y) * w + x;
-                    const double err = std::fabs(static_cast<double>(gpu[i] - static_cast<double>(ref[i])));
+                    const double err = std::fabs(static_cast<double>(gpu[i]) - static_cast<double>(ref[i]));
                     const double bound = g * abs_sum[i] + floor;
                     double ratio = err/bound;
 
