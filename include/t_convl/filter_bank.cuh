@@ -61,4 +61,61 @@ namespace tiled_convolution
             std::vector<float> taps_;
     };
 
+    struct SlotRecord
+    {
+        bool loaded; //checks if naything has been uploaded
+        int radius; //radius of the filter in the slot
+        std::string name; //filter name
+        unsigned long uploads; //how many times has the slot been written
+    };
+
+    class FilterBank
+    {
+        public:
+            FilterBank() : records_(static_cast<std::size_t>(filter_slots), SlotRecord{false, - 1, std::string(), 0}) {}
+
+            FilterBank(const FilterBank &) = delete;
+            FilterBank &operator = (const FilterBank &) = delete;
+
+            void upload(int slot, const Filter &filter, cudaStream_t stream)
+            {
+                check_slot(slot);
+                const std::size_t offset = static_cast<std::size_t>(slot) * max_filter_taps * sizeof(float);
+                const std::size_t bytes = filter.size() * sizeof(float);
+                T_CONVL_CHECK_CUDA(cudaMemcpyToSymbolAsync(detail::filter_bank, filter.data(), bytes, offset, cudaMemcpyHostToDevice, stream));
+                SlotRecord &rec = records_[static_cast<std::size_t>(slot)];
+                rec.loaded = true;
+                rec.radius = filter.radius();
+                rec.name = filter.name();
+                ++rec.uploads;
+            }
+
+            void require(int slot, int radius) const
+            {
+                check_slot(slot);
+                const SlotRecord &rec = records_[static_cast<std::size_t>(slot)];
+
+                if(!rec.loaded)
+                    throw std::logic_error("FilterBank: slot " + std::to_string(slot) + "is empty");
+
+                if(rec.radius != radius)
+                    throw std::logic_error("FilterBank: slot " + std::to_string(slot) + "holds '" + rec.name + "' (radius " + std::to_string(rec.radius) +
+                                            "), kernel expects radius " + std::to_string(radius));
+            }
+
+            const SlotRecord &record(int slot) const
+            {
+                check_slot(slot);
+                return records_[static_cast<std::size_t>(slot)];
+            }
+
+    
+        private:
+            std::vector<SlotRecord> records_;
+            void check_slot(int slot) const
+            {
+                if(slot < 0 || slot >= filter_slots)
+                    throw std::out_of_range("FilterBank: slot " + std::to_string(slot) + " outside [0, " + std::to_string(filter_slots) +"]");
+            }
+    };
 }
