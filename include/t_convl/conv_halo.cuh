@@ -91,8 +91,24 @@ namespace tiled_convolution
         if(slot < 0 || slot >= filter_slots)
             throw std::out_of_range("slot is not within range" + std::to_string(filter_slots));
 
-        if()
+        if(batch > 1 && batch < 65535)
+        {
+            static_cast<ptrdiff_t>(in.min) = static_cast<ptrdiff_t>(in.pitch) * in.height; 
+            static_cast<ptrdiff_t>(out.min) = static_cast<ptrdiff_t>(out.pitch) * out.height;
+            if(in_image_stride < in.min)
+                throw std::out_of_range("input image stride is less than input minimum");
+            
+            if(out_image_stride < out.min)
+                throw std::out_of_range("output image stride is less than the output minimum");
+        }
 
+        check_border_contract<Border>(in.width, in.height, R);
+
+        const dim3 blockDim(TX, TY, 1);
+        const dim3 gridDim((in.width + TX - 1) / TX, (in.height + TY + 1) / TY, batch);
+
+        conv_halo_kernel<R, Border, TX, TY, T><<<gridDim, blockDim, 0, stream>>>(in, out, in_image_stride, out_image_stride, slot);
+
+        T_CONVL_CHECK_CUDA(cudaGetLastError());        
     }
-
 }
