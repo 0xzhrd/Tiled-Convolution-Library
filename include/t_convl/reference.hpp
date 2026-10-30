@@ -1,7 +1,7 @@
 /*
 host only reference implementation that every GPU kernel is checked against
 this file must never call the border policies or ImageView
-the filter layout is filter[(dy + r)*fw + (dx + r)]
+the filter layout is filter[(dy + r)*filter_w + (dx + r)]
 */
 #pragma once
 
@@ -79,7 +79,7 @@ namespace tiled_convolution
             if(in == nullptr || filter == nullptr || out == nullptr || abs_sum == nullptr)
                 throw std::invalid_argument("reference: null buffer");
 
-            const int fw = filter_width(rad);
+            const int filter_w = filter_width(rad);
             for(int y = 0; y < h; ++y)
             {
                 for(int x = 0; x < w; ++x)
@@ -102,7 +102,7 @@ namespace tiled_convolution
                                 continue;
 
                             const double p = static_cast<double>(in[static_cast<std::size_t>(sy) * w + sx]);
-                            const double f = static_cast<double>(filter[(dy + rad) * fw + (dx + rad )]);
+                            const double f = static_cast<double>(filter[(dy + rad) * filter_w + (dx + rad )]);
 
                             sum += f * p;
                             mag += std::fabs(f) * std::fabs(p);
