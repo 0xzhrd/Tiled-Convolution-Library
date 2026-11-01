@@ -43,17 +43,17 @@ namespace // everything inside this namespace is private to this file
         {
             f();
         }
-        catch (const std::invalid_argument&)
+        catch(const std::invalid_argument&)
         {
             return; // pass
         }
-        catch (const std::exception& e)
+        catch(const std::exception &e)
         {
             ++g_failures;
             std::printf("FAIL line %d: %s threw the wrong exception type: %s\n", line, what, e.what());
             return;
         }
-        catch (...)
+        catch(...)
         {
             ++g_failures;
             std::printf("FAIL line %d: %s threw a non-std exception\n", line, what);
