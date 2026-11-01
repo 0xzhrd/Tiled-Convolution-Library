@@ -12,8 +12,8 @@ runs on the gou
 #endif
 
 #include <cuda_runtime.h>
-#include "cudacheck.hpp"
-#include "config.hpp"
+#include "t_convl/cudacheck.hpp"
+#include "t_convl/config.hpp"
 #include <stdexcept>
 #include <cstddef>
 #include <string>
