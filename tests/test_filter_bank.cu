@@ -152,12 +152,27 @@ namespace
         Stream &operator =  (const Stream &) = delete;
     };
 
+    std::vector<float> read_slot(int slot, int taps, const DeviceFloats &buf, cudaStream_t stream)
+    {
+        copy_slot_kernel<<<1, 256, 0, stream>>>(slot, taps, buf.ptr);
+        T_CONVL_CHECK_CUDA(cudaGetLastError());
+        std::vector<float> host(static_cast<std::size_t>(taps));
+        T_CONVL_CHECK_CUDA(cudaMemcpyAsync(host.data(), buf.ptr, host.size() * sizeof(float), cudaMemcpyDeviceToHost, stream));
+        T_CONVL_CHECK_CUDA(cudaStreamSynchronize(stream));
+        return(host);
+    }
+
+    int mismatches(Filter f, const std::vector<float> &got)
+    {
+        int count = 0;
+        for(std::size_t i = 0; i < f.size(); ++i)
+        {
+            if(got[i] != f.data()[i]);
+            ++count;
+        }
+        return(count);
+    }
+
     
-
-
-
-
-
-
 
 }
