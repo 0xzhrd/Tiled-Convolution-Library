@@ -21,7 +21,7 @@ namespace
     int g_checks = 0;
     int g_failures = 0;
 
-    void check_impl(bool ok, const char* expr, int line, const char* context)
+    void check_impl(bool ok, const char* expr, int line, const std::string &context)
     {
         ++g_checks;
         if (!ok)
@@ -91,10 +91,70 @@ namespace
         FilterBank bank;
         for(int s = 0; s < filter_slots; ++s)
         {
+            const SlotRecord &rec = bank.record(s);
             
-        }
+            std::ostringstream msg;
+            msg << "slot " << s
+                << ":loaded=" << rec.loaded
+                << " radius=" << rec.radius
+                << " uploads=" << rec.uploads;
+            CHECK(!rec.loaded && rec.radius == -1 && rec.uploads == 0, msg.str());
 
+            EXPECT_THROW_AS(std::logic_error, bank.require(0, 1));
+            EXPECT_THROW_AS(std::out_of_range, bank.record(-1));
+            EXPECT_THROW_AS(std::out_of_range, bank.record(filter_slots));
+            EXPECT_THROW_AS(std::out_of_range, bank.require(filter_slots, 1));
+
+            const Filter f = ramp_filter("f", 1, 1.0f);
+            EXPECT_THROW_AS(std::out_of_range, bank.upload(filter_slots, f, nullptr));
+            EXPECT_THROW_AS(std::out_of_range, bank.upload(-1, f, nullptr));
+        }
     }
+
+    __global__ void copy_slot_kernel(int slot, int taps, float *out)
+    {
+        for(int k = static_cast<int>(threadIdx.x); k < taps; k+= static_cast<int>(blockDim.x))                
+        {
+            //test purposes not a broadcast
+            out[k] = filter_tap(slot, k);
+        }
+    }
+
+    struct DeviceFloats
+    {
+        float *ptr = nullptr;
+        
+        explicit DeviceFloats(std::size_t n) 
+        {
+            T_CONVL_CHECK_CUDA(cudaMalloc(&ptr, n * sizeof(float)));
+        }
+        ~DeviceFloats() 
+        {
+            cudaFree(ptr);
+        }
+        DeviceFloats(const DeviceFloats &) = delete;
+        DeviceFloats &operator = (const DeviceFloats &) = delete;
+    };
+
+    struct Stream
+    {
+        cudaStream_t s = nullptr;
+
+        explicit Stream(cudaStream_t s)
+        {
+            T_CONVL_CHECK_CUDA(cudaStreamCreate(&s));
+        }
+        ~Stream()
+        {
+            cudaFree(s);
+        }
+        Stream(const Stream &) = delete;
+        Stream &operator =  (const Stream &) = delete;
+    };
+
+    
+
+
 
 
 
