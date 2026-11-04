@@ -145,9 +145,26 @@ namespace tiled_convolution
                 return make_view<const T>(ptr_, width_, height_, pitch_bytes_);
             }
 
-            
+            void upload(const std::vector<T> &host, cudaStream_t stream)
+            {
+                check_count(host.size(), "upload");
+                const std::size_t row_bytes = static_cast<std::size_t>(width_) * sizeof(T);
+                T_CONVL_CHECK_CUDA(cudaMemcpy2DAsync(ptr_, pitch_bytes_, host.data(), row_bytes, row_bytes, total_rows(), cudaMemcpyHostToDevice, stream));
+            }
 
+            std::vector<T> downlaod(cudaStream_t stream) const
+            {
+                std::vector<T> host(element_count());
+                const std::size_t row_bytes = static_cast<std::size_t>(width) * sizeof(T);
+                T_CONVL_CHECK_CUDA(cudaMemcpy2DAsync(host.data(), row_bytes, ptr_, pitch_bytes, row_bytes, total_rows(), cudaMemcpyDefault, stream));
+                T_CONVL_CHECK_CUDA(cudaStreamSynchronize(stream));
+                return(host);
+            }
 
+            coid poison(cudaStream_t stream)
+            {
+                T_CONVL_CHECK_CUDA(cudaMemsetAsync(ptr_, 0xFF, pitch_bytes_ * total_rowsa(), stream));
+            }
 
         private:
             std::size_t total_rows() const
@@ -174,8 +191,83 @@ namespace tiled_convolution
             int width_ = 0;
             int height_ = 0;
             int batch_ = 0;
-
     };
 
+    class Stream
+    {
+        public:
+            Stream() {T_CONVL_CHECK_CUDA(cudaStreamCreate(&stream_));}
+            ~Stream()
+            {
+                if(stream_ != nullptr)
+                {
+                    cudaStreamDestroy(stream_);
+                }
+            }
+
+            Stream(const Stream &) = delete;
+            Stream &operator = (const Stream &) = delete;
+
+            Stream(Stream&& other) noexcept : stream_(std::exchange(other.stream_, nullptr)) 
+            {}
+            Stream &operator = (Stream&& other) noexcept
+            {
+                if(this != &other)
+                {
+                    if(stream_ != nullptr)
+                        cudaStreamDestroy(stream_);
+                    stream_ = std::exchange(other.stream_, nullptr);
+                }
+                return *this;
+            }
+
+            cudaStream_t get() const {return stream_;}
+            void synchronize() const {T_CONVL_CHECK_CUDA(cudaStreamSynchronize(stream_));}
+
+        private:
+            cudaStream_t stream_ = nullptr;
+    };
+
+    class Event
+    {
+        public:
+            Event() {T_CONVL_CHECK_CUDA(cudaEventCreate(&event_));}
+            ~Event()
+            {
+                if(event_ != nullptr)
+                    cudaEventDestroy(event_);
+            }
+            Event(const Event &) = delete;
+            Event &operator = (const Event &) = delete;
+
+            Event(Event&& other) noexcept : event_(std::exchange(other.event_, nullptr)) {}
+            Event &operator = (Event&& other) noexcept
+            {
+                if(this != &other)
+                {
+                    if(event_ != nullptr)
+                    {
+                        cudaEventDestroy(event_);
+                    }
+                    event_ = std::exchange(other.event_, nullptr);
+                }
+                return *this; 
+           }
+
+           void record(cudaStream_t stream) {T_CONVL_CHECK_CUDA(cudaEventRecord(event_, stream));}
+           void synchronize() const {T_CONVL_CHECK_CUDA(cudaEventSynchronize(event_));}
+           cudaEvent_t get() const {return event_;}
+
+           static float elapsed_ms(const Event &start, const Event &end)
+           {
+            end.synchronize();
+            float ms = 0.0f;
+            T_CONVL_CHECK_CUDA(cudaEventElapsedTime(&ms, start.event_, end.event_));
+            return(ms);
+           }
+
+        private:
+            cudaEvent_t event_ = nullptr;
+    };
 }
 
