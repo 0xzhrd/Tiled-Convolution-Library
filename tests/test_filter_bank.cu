@@ -1,5 +1,5 @@
 /*
-
+used to test filter_bank.cuh
 */
 
 #include "t_convl/filter_bank.cuh"
@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <cuda_runtime.h>
 
 using namespace tiled_convolution;
@@ -67,14 +68,14 @@ namespace
     {
         const int width = 2 * r + 1;
         std::vector<float> taps(static_cast<std::size_t>(width) * width);
-        for(int i = 0; i < taps.size(); ++i)
+        for(std::size_t i = 0; i < taps.size(); ++i)
         {
             taps[i] = start + static_cast<float>(i);
         }
         return(Filter(name, r, taps));
     }
 
-    void _test_filter_validation()
+    void test_filter_validation()
     {
         EXPECT_THROW_AS(std::invalid_argument, Filter("", 1, std::vector<float>(9))); //nine zeroes vector inits to 0 
         EXPECT_THROW_AS(std::invalid_argument, Filter("neg", -1, std::vector<float>(9)));
@@ -150,14 +151,8 @@ namespace
     {
         cudaStream_t s = nullptr;
 
-        explicit Stream(cudaStream_t s)
-        {
-            T_CONVL_CHECK_CUDA(cudaStreamCreate(&s));
-        }
-        ~Stream()
-        {
-            cudaFree(s);
-        }
+        Stream() {T_CONVL_CHECK_CUDA(cudaStreamCreate(&s));}
+        ~Stream() {cudaStreamDestroy(s);}
         Stream(const Stream &) = delete;
         Stream &operator =  (const Stream &) = delete;
     };
