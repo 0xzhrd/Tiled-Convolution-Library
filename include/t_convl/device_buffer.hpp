@@ -29,5 +29,25 @@ namespace tiled_convolution
             }
 
             ~DeviceBuffer() {cudaFree(ptr_);}
+
+            DeviceBuffer(const DeviceBuffer &) = delete;
+            DeviceBuffer &operator = (const DeviceBuffer &) = delete;
+
+            DeviceBuffer(DeviceBuffer&& other) noexcept : ptr_(std::exchange(other.ptr_, nullptr)), count_(std::exchange(other.count_, 0))
+            { }
+
+            DeviceBuffer &operator = (DeviceBuffer&& other) noexcept
+            {
+                if(this != &other)
+                {
+                    cudaFree(ptr_);
+                    ptr_ = std::exchange(other.ptr_, nullptr);
+                    count_ = std::Exchange(other.count_, 0);
+                }
+                return *this;
+            }
+
+            
     };
 }
+
