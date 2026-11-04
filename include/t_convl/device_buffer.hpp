@@ -47,11 +47,10 @@ namespace tiled_convolution
                 return *this;
             }
 
-            const T *data();
-            T *data();
-            
-            size() {return(count_;)}
-            bytes() {return(count * sizeof(T));}
+            T *data() {return ptr_;}
+            const T *data() {return ptr_;}
+            std::size_t size() {return(count_;)}
+            std::size_t bytes() {return(count * sizeof(T));}
             void upload(const std::vector<T> &host, cudaStream_t stream)
             {
                 check_count(host.size(), "upload");
@@ -61,7 +60,7 @@ namespace tiled_convolution
             std::vector<T> download(cudaStream_t stream) const
             {
                 std::vector<T> host(count_);
-                cudaMemcpyAsync(host.data(), ptr_, bytes(), cudaMemcpyDeviceToHost, stream)
+                T_CONVL_CHECK_CUDA(cudaMemcpyAsync(host.data(), ptr_, bytes(), cudaMemcpyDeviceToHost, stream));
                 T_CONVL_CHECK_CUDA(cudaStreamSynchronize(stream));
                 return(host);
             }
@@ -106,21 +105,76 @@ namespace tiled_convolution
                     cudaFree(ptr_);
             }
 
+            PitchedImage(const PitchedImage &) = delete;
+            PitchedImage &operator = (const PitchedImage &) = delete;
+
+            PitchedImage(PitchedImage&& other) noexcept : ptr_(std::exchange(other.ptr_, nullptr)), pitch_bytes_(std::exchange(other.pitch_bytes_, 0)), width_(std::exchange(other.width_, 0)), height_(std::exchange(other.height_, 0)), batch_(std::exchange(other.batch_, 0))
+            { }
+
+            PitchedImage &operator = (PitchedImage&& other) noexcept
+            {
+                if(this != &other)
+                {
+                    cudaFree(ptr_);
+                    ptr_ = std::exchange(other.ptr_, nullptr);
+                    pitch_bytes_ = std::exchange(other.pitch_bytes_, 0);
+                    width_ = std::exchange(other.width_, 0);
+                    height_ = std::exchange(other.height_, 0);
+                    batch_ = std::exchange(other.batch_, 0);
+                }
+                return *this;
+            }
+
+            int width() const {return width_;}
+            int height() const {return height_;}
+            int batch() const {return batch_;}
+            size_t pitch_bytes() const {return pitch_bytes_;}
+
+            std::ptrdiff_t image_stride() const
+            {
+                return static_cast<std::ptrdiff_t>(pitch_bytes_ / sizeof(T)) * height_;
+            }
+
+            ImageView<T> view()
+            {
+                return make_view(ptr_, width_, height_, pitch_bytes_);
+            }
+
+            ImageView<const T> const_view() const
+            {
+                return make_view<const T>(ptr_, width_, height_, pitch_bytes_);
+            }
+
+            
+
+
+
         private:
+            std::size_t total_rows() const
+            {
+                return static_cast<std::size_t>(height_) * static_cast<std::size_t>(batch_);
+            }
+
+            std::size_t element_count() const 
+            {
+                return static_cast<std::size_t>(width_) * total_rows(); 
+            }
+
+            void check_count(std::size_t n, const char *what) const
+            {
+                if(n != element_count())
+                {
+                    throw std::invalid_argument(std::string("PitchedImage:") + what + ": host has " + std::to_string(n) + " elements, image needs " +
+                                                std::to_string(element_count()));
+                }
+            }
+            
+            size_t pitch_bytes_ = 0;
+            T *ptr_ = nullptr;
             int width_ = 0;
             int height_ = 0;
             int batch_ = 0;
-            size_t pitch_bytes_ = 0;
-            T *ptr_ = nullptr;
 
-            void swap(PitchedImage &other) noexcept
-            {
-                std::swap(ptr_, other.ptr_);
-                std::swap(pitch_bytes_, other.pitch_bytes_);
-                std::swap(width_, other.width_);
-                std::swap(height_, other.height_);
-                std::swap(batch_, other.batch_);
-            }
     };
 
 }
