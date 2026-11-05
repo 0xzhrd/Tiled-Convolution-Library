@@ -46,14 +46,37 @@ namespace tiled_convolution
 
         const int ox = static_cast<int>(blockIdx.x) * TX + tx;
         const int oy = static_cast<int>(blockIdx.y) * TY + ty;
+
+        //prob something missing here
+        
+        const bool reachable = ox <= src.width - 1 + R && oy <= src.height - 1 + R;
+
+        tile[ty * TX + tx] = reachable ? static_cast<float>(Border::load(src, ox, oy)) : 0.0f;
+        __syncthreads();
+
         if(ox >= dst.width || oy >= dst.height)
         {
             return;
         }
 
+        float acc = 0.0f;
+        #pragma unroll 1
+        for(int dy = 0; dy < G::filter_w; ++dy)
+        {
+            const int ly = ty + dy - R;
+            const int gy = oy + dy - R;
+            const bool row_in = static_cast<unsigned>(ly) < static_cast<unsigned>(TY);
+            #pragma unroll
+            for(int dx = 0; dx < G::filter_w; ++dx)
+            {
+                const int lx = tx + dx - R;
+                const float p = (row_in && static_cast<unsigned>(lx) < static_cast<unsigned>(TX)) ? tile[ly * TX + lx] : static_cast<float>(Border::load(src, ox + dx - R, gy));
+                acc += filter_tap(slot, dy * G::filter_w + dx) * p;
 
-        //prob something missing here
-        
-        
+            }
+        }
+        dst.row(oy)[ox] = acc;
     }
+
+    
 }
