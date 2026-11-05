@@ -81,7 +81,7 @@ namespace tiled_convolution
     }
 
     template <int R, typename Border, int TX = 16, int TY = 16, typename T>
-    void conv_halo(Image<const T> in, Image<float> out, int slot, cudaStream_t stream, int batch = 1, std::ptrdiff_t in_image_stride = 0, std::ptrdiff_t out_image_stride = 0)
+    void convl_halo(Image<const T> in, Image<float> out, int slot, cudaStream_t stream, int batch = 1, std::ptrdiff_t in_image_stride = 0, std::ptrdiff_t out_image_stride = 0)
     {
         if(in.width != out.width || in.height != out.height)
             throw std::invalid_argument("input width " + std::to_string(in.width) + " is not the same as output width " + std::to_string(out.width)

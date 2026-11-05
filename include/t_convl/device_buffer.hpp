@@ -135,12 +135,12 @@ namespace tiled_convolution
                 return static_cast<std::ptrdiff_t>(pitch_bytes_ / sizeof(T)) * height_;
             }
 
-            ImageView<T> view()
+            Image<T> view()
             {
                 return make_view(ptr_, width_, height_, pitch_bytes_);
             }
 
-            ImageView<const T> const_view() const
+            Image<const T> const_view() const
             {
                 return make_view<const T>(ptr_, width_, height_, pitch_bytes_);
             }
@@ -152,7 +152,7 @@ namespace tiled_convolution
                 T_CONVL_CHECK_CUDA(cudaMemcpy2DAsync(ptr_, pitch_bytes_, host.data(), row_bytes, row_bytes, total_rows(), cudaMemcpyHostToDevice, stream));
             }
 
-            std::vector<T> downlaod(cudaStream_t stream) const
+            std::vector<T> download(cudaStream_t stream) const
             {
                 std::vector<T> host(element_count());
                 const std::size_t row_bytes = static_cast<std::size_t>(width) * sizeof(T);
@@ -161,7 +161,7 @@ namespace tiled_convolution
                 return(host);
             }
 
-            coid poison(cudaStream_t stream)
+            void poison(cudaStream_t stream)
             {
                 T_CONVL_CHECK_CUDA(cudaMemsetAsync(ptr_, 0xFF, pitch_bytes_ * total_rowsa(), stream));
             }

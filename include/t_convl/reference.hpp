@@ -1,6 +1,6 @@
 /*
 host only reference implementation that every GPU kernel is checked against
-this file must never call the border policies or ImageView
+this file must never call the border policies or Image
 the filter layout is filter[(dy + r)*filter_w + (dx + r)]
 */
 #pragma once
