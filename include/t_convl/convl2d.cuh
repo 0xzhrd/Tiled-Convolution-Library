@@ -8,7 +8,6 @@ the kernel needs compile time params and callers have runtime values, the functi
 #error "convl2d.cuh needs nvcc to compile"
 #endif
 
-#include "t_convl/cudacheck.hpp"
 #include "t_convl/convl_cache.cuh"
 #include "t_convl/convl_halo.cuh"
 #include "t_convl/filter_bank.cuh"
