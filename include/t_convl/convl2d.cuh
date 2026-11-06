@@ -72,7 +72,81 @@ namespace tiled_convolution
             }
         }
 
-        
-    }
+        template<int R, typename T>
+        void launch_border(Variant v, Image<const T>in,  Image<float>out, int slot, cudaStream_t stream, const ConvOptions &o)
+        {
+            switch(o.border)
+            {
+                case BorderMode::Zero:
+                    launch_variant<R, BorderZero>();
+                    return;
+                case BorderMode::Clamp: 
+                    launch_variant<R, BorderClamp>();
+                    return;
+                case BorderMode::Reflect101: 
+                    launch_variant<R, BorderReflect101>();
+                    return;
+            }
+            throw std::invalid_argument("convl2d: unknown border mode (this happens if you pass an out of range value into the enum)");
+        }
 
+        template<typename T>
+        void launch_radius(int radius, Variant v, Image<const T>in, Image<float>out, cudaStream_t stream, const ConvOptions &o)
+        {
+            switch(radius)
+            {
+                case 0:
+                    launch_border<0>(v, in, out, slot, stream, o);
+                    return;
+                case 1:
+                    launch_border<1>(v, in, out, slot, stream, o);
+                    return;
+                case 2:
+                    launch_border<2>(v, in, out, slot, stream, o);
+                    return;
+                case 3:
+                    launch_border<3>(v, in, out, slot, stream, o);
+                    return;
+                case 4:
+                    launch_border<4>(v, in, out, slot, stream, o);
+                    return;
+                case 5:
+                    launch_border<5>(v, in, out, slot, stream, o);
+                    return;
+                case 6:
+                    launch_border<6>(v, in, out, slot, stream, o);
+                    return;
+                case 7:
+                    launch_border<7>(v, in, out, slot, stream, o);
+                    return;
+                case 8:
+                    launch_border<8>(v, in, out, slot, stream, o);
+                    return;
+                case 9:
+                    launch_border<9>(v, in, out, slot, stream, o);
+                    return;
+                case 10:
+                    launch_border<10>(v, in, out, slot, stream, o);
+                    return;
+                case 11:
+                    launch_border<11>(v, in, out, slot, stream, o);
+                    return;
+                case 12:
+                    launch_border<12>(v, in, out, slot, stream, o);
+                    return;
+                case 13:
+                    launch_border<13>(v, in, out, slot, stream, o);
+                    return;
+                case 14:
+                    launch_border<14>(v, in, out, slot, stream, o);
+                    return;
+                case 15:
+                    launch_border<15>(v, in, out, slot, stream, o);
+                    return;
+                default:
+                    break;
+            }
+            throw std::invalid_argument("")
+        }
+    }
 }
