@@ -60,7 +60,7 @@ namespace tiled_convolution
     namespace detail
     {
         template<int R, typename Border, typename T>
-        void launch_variant(Variant v, Image<const T>in, Image<float>out, int slot, cudaStream_t stream, const ConvOptions &o)
+        void launch_variant(Variant v, Image<const T> in, Image<float> out, int slot, cudaStream_t stream, const ConvOptions &o)
         {
             if(v == Variant::Halo)
             {
@@ -73,28 +73,30 @@ namespace tiled_convolution
         }
 
         template<int R, typename T>
-        void launch_border(Variant v, Image<const T>in,  Image<float>out, int slot, cudaStream_t stream, const ConvOptions &o)
+        void launch_border(Variant v, Image<const T> in,  Image<float> out, int slot, cudaStream_t stream, const ConvOptions &o)
         {
             switch(o.border)
             {
                 case BorderMode::Zero:
-                    launch_variant<R, BorderZero>();
+                    launch_variant<R, BorderZero>(v, in, out, slot, stream, o);
                     return;
                 case BorderMode::Clamp: 
-                    launch_variant<R, BorderClamp>();
+                    launch_variant<R, BorderClamp>(v, in, out, slot, stream, o);
                     return;
                 case BorderMode::Reflect101: 
-                    launch_variant<R, BorderReflect101>();
+                    launch_variant<R, BorderReflect101>(v, in, out, slot, stream, o);
                     return;
             }
             throw std::invalid_argument("convl2d: unknown border mode (this happens if you pass an out of range value into the enum)");
         }
 
+        static_assert(max_filter_radius == 15, "convl2d's radius switch covers 0 to 15; update it to match config.hpp");
+
         template<typename T>
-        void launch_radius(int radius, Variant v, Image<const T>in, Image<float>out, cudaStream_t stream, const ConvOptions &o)
+        void launch_radius(int radius, Variant v, Image<const T> in, Image<float> out, cudaStream_t stream, const ConvOptions &o)
         {
             switch(radius)
-            {
+            {//if build time is an issue, make the switch case for the radii narrower
                 case 0:
                     launch_border<0>(v, in, out, slot, stream, o);
                     return;
@@ -146,7 +148,21 @@ namespace tiled_convolution
                 default:
                     break;
             }
-            throw std::invalid_argument("")
+            throw std::invalid_argument("convl2d: radius " + std::to_string(radius) + " outside [0, " + std::to_string(max_filter_radius) + "]");
         }
+    }
+
+    template <typename T>
+    Variant convl2d(const FilterBank &bank, int slot, int radius, Image<const T> in, Image<float> out, cudaStream_t stream, const ConvOptions &options = ConvOptions())
+    {
+        if(radius < 0 || radius > max_filter_radius)
+        {
+            throw std::invalid_argument("convl2d: radius outside [0, " + std::to_string(max_filter_radius) + "]");
+        }
+        bank.require(slot, radius);
+        const Variant chosen = options.variant == Variant::Auto ? select_variant(radius, options.selector)
+
+        detail::launch_radius(radius, chosen, in, out, slot, stream, options);
+        return chosen;
     }
 }
