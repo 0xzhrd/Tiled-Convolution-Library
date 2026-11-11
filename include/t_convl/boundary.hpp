@@ -1,3 +1,7 @@
+/*
+boundary.hpp defines what an image is(where the valid pixels are and how the rows are laid out) as well as what a pixel outside the image(halo) means
+*/
+
 #pragma once
 
 #include <cstddef>
@@ -9,6 +13,14 @@
 
 namespace tiled_convolution
 {
+    namespace detail 
+    {
+        TILED_CONV constexpr int int_abs(int v )
+        {
+            return v < 0 ? -v : v;
+        }
+    }    
+
     enum class BorderMode {Zero, Clamp, Reflect101};
 
     constexpr const char *border_name(BorderMode m) 
@@ -35,7 +47,7 @@ namespace tiled_convolution
         T *data;
         int width;
         int height;
-        int pitch;
+        int pitch; //no of elements between the start of one row and the next in memory
 
         TILED_CONV T *row(int y ) const {return data + static_cast<std::ptrdiff_t>(y) * pitch;}
     };
@@ -173,13 +185,5 @@ namespace tiled_convolution
     
     static_assert( BorderReflect101::supports(16, 15), "reflect101: n = r + 1 supported");
     static_assert(!BorderReflect101::supports(15, 15), "reflect101: n = r rejected");
-
-    namespace detail 
-    {
-        TILED_CONV constexpr int int_abs(int v )
-        {
-            return v < 0 ? -v : v;
-        }
-    }    
 }
 
