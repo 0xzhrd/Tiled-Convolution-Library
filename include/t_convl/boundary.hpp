@@ -4,10 +4,8 @@ boundary.hpp defines what an image is(where the valid pixels are and how the row
 
 #pragma once
 
-#include <cstddef>
 #include <limits>
 #include <stdexcept>
-#include <string>
 #include <type_traits>
 #include "config.hpp"
 
@@ -34,7 +32,7 @@ namespace tiled_convolution
                 return "clamp";
 
             case BorderMode::Reflect101:
-                return "reflext101";
+                return "reflect101";
         }
         return "unknown";
     }
@@ -55,7 +53,7 @@ namespace tiled_convolution
     template <typename T>
     Image<T> make_view(T *data, int width, int height, std::size_t pitch_bytes)
     {
-        if(data == null)
+        if(data == nullptr)
             throw std::invalid_argument("make_view: data is null");
 
         if(width <= 0 || height <= 0)
@@ -150,11 +148,11 @@ namespace tiled_convolution
     void check_border_contract(int width, int height, int radius)
     {
         if(radius < 0)
-            throw std::invalid_arguments("check_border_contract: negative radius " + std::to_string(radius));
+            throw std::invalid_argument("check_border_contract: negative radius " + std::to_string(radius));
 
         if(!Policy::supports(width, radius) || !Policy::supports(height, radius))
             throw std::invalid_argument(std::string("check_border_contract: border '") + border_name(Policy::mode) + 
-            "' needs width and height > radius; got " + std:: to_String(width) + "x" + std::to_string(height) + ", radius " + std::to_string(radius));
+            "' needs width and height > radius; got " + std:: to_string(width) + "x" + std::to_string(height) + ", radius " + std::to_string(radius));
     }
 
     static_assert(std::is_trivially_copyable<Image<const float>>::value,
