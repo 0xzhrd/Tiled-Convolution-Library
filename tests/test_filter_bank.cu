@@ -1,5 +1,7 @@
 /*
 used to test filter_bank.cuh
+
+nvcc -std=c++14 -I include -gencode arch=compute_87,code=sm_87 -gencode arch=compute_89,code=sm_89 -gencode arch=compute_90,code=sm_90 -Xptxas -v tests/test_filter_bank.cu -o build/test_filter_bank
 */
 
 #include "t_convl/filter_bank.cuh"
@@ -27,7 +29,7 @@ namespace
         if (!ok)
         {
             ++g_failures;
-            std::printf("FAIL line %d: %s  [%s]\n", line, expr, context);
+            std::printf("FAIL line %d: %s  [%s]\n", line, expr, context.c_str());
         }
     }
 
@@ -276,6 +278,6 @@ int main()
     }
 
     run(test_gpu_round_trip, "test_gpu_rounf_trip");
-    std::printf("filtr_bank: %d failures in %d checks\n", g_failures, g_checks);
+    std::printf("filter_bank: %d failures in %d checks\n", g_failures, g_checks);
     return(g_failures == 0 ? 0 : 1);
 }

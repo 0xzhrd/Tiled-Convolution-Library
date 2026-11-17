@@ -59,7 +59,7 @@ namespace tiled_convolution
         if(width <= 0 || height <= 0)
             throw std::invalid_argument("make_view: image sizes are non-positive " + std::to_string(width) + "x" + std::to_string(height));
 
-        if(pitch_bytes % sizeof(T) == 0)
+        if(pitch_bytes % sizeof(T) != 0)
             throw std::invalid_argument("make_view: pitch " + std::to_string(pitch_bytes) + " bytes not divisible by sizeof(T)=" + std::to_string(sizeof(T)));
 
         const std::size_t pitch_elems = pitch_bytes / sizeof(T);

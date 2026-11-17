@@ -1,16 +1,18 @@
 /*
 host only reference implementation that every GPU kernel is checked against
-this file must never call the border policies or Image
+this file must never call the border policies or Image as its for verification dn not production
 the filter layout is filter[(dy + r)*filter_w + (dx + r)]
+
+g++ -std=c++14 -Wall -Wextra -I include -x c++ -fsyntax-only include/t_convl/reference.hpp
 */
 #pragma once
 
-#include <vector>
 #include <cstddef>
+#include <string>
+#include <vector>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
-#include <string>
 #include "t_convl/boundary.hpp"
 
 namespace tiled_convolution
@@ -31,7 +33,7 @@ namespace tiled_convolution
                         valid = false;
                         return(0);
                     }
-                    return(0);
+                    return(coord);
 
                 case BorderMode::Clamp:
                     if(coord < 0)

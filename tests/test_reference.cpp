@@ -1,5 +1,7 @@
 /*
 Host-only test of reference.hpp.
+g++ -std=c++14 -Wall -Wextra -Werror -I include tests/test_reference.cpp -o build/test_reference
+./build/test_reference
 */
 
 #include "t_convl/reference.hpp"

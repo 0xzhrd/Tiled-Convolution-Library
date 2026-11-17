@@ -37,7 +37,8 @@ namespace tiled_convolution
             {
                 if(name_.empty()) throw std::invalid_argument("filter name must not be empty");
 
-                if(radius_ <= 0 || radius_ > max_filter_radius) throw std::invalid_argument("invalid filter radius");
+                if(radius_ <= 0 || radius_ > max_filter_radius) 
+                    throw std::invalid_argument("Filter '" + name_ + "': radius " + std::to_string(radius_) + " outside [0, " + std::to_string(max_filter_radius) + "]");
 
                 const std::size_t expected = static_cast<std::size_t>(width()) * width();
                 if(taps_.size() != expected) throw std::invalid_argument(" ");
