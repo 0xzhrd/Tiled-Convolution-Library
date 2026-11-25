@@ -34,7 +34,7 @@ Every result is checked and not assumed:
 
 ## Usage
 ```
-#include "t_convl/conv2d.cuh"
+#include "t_convl/convl2d.cuh"
 #include "t_convl/device_buffer.hpp"   // optional RAII helpers
 using namespace tiled_convolution;
 
@@ -42,7 +42,7 @@ FilterBank bank;                                     // bookkeeping for the cons
 bank.upload(0, Filter("sobel_x", 1, {-1,0,1, -2,0,2, -1,0,1}), stream);
 
 ConvOptions opt;                                      // defaults: Reflect101 border, Auto variant
-Variant ran = conv2d(bank, /*slot*/ 0, /*radius*/ 1,
+Variant ran = convl2d(bank, /*slot*/ 0, /*radius*/ 1,
                      in_view, out_view, stream, opt); // asynchronous; returns the variant used
 ```
     -The caller owns all memory; the library owns only the computation.

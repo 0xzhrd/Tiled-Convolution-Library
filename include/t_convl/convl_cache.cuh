@@ -23,7 +23,7 @@ namespace tiled_convolution
     {
         static constexpr int filter_w = 2 * R + 1;
         static constexpr int threads = TX * TY;
-        std::size_t smem_bytes = sizeof(float) * TY * TY;
+        static constexpr std::size_t smem_bytes = sizeof(float) * static_cast<std::size_t>(TX) * static_cast<std::size_t>(TY);
         
         static_assert(R >= 0 && R <= max_filter_radius, "CacheGeometry: radius is not within the established limits [1, 8]");
         static_assert(threads <= 1024, "CacheGeometry: there should be a maximum of 1024 threads per block");
@@ -31,8 +31,8 @@ namespace tiled_convolution
         static_assert(threads % 32 == 0, "CacheGeometry: block size must be a multiple of a warp");
     };  
     template <int R, typename Border, int TX, int TY, typename T>
-    __global__ void __launch_bounds__(TX * TY) conv_cache_kernel(Image<const T> in, Image<float> out, std::ptrdiff_t in_image_stride, std::ptrdiff_t out_image_stride, int slot)
-    {//launcher can treat this and conv_halo_kernel as interchangeable
+    __global__ void __launch_bounds__(TX * TY) convl_cache_kernel(Image<const T> in, Image<float> out, std::ptrdiff_t in_image_stride, std::ptrdiff_t out_image_stride, int slot)
+    {//launcher can treat this and convl_halo_kernel as interchangeable
         using G = CacheGeometry<R, TX, TY>;
         __shared__ float tile[TX * TY];
 
@@ -100,7 +100,7 @@ namespace tiled_convolution
         const dim3 block(TX, TY, 1);
         const dim3 grid((in.width + TX - 1) / TX, (in.height + TY - 1) / TY, batch);
 
-        conv_cache_kernel<R, Border, TX, TY, T><<<grid, block, 0, stream>>>(in, out, in_image_stride, out_image_stride, slot);
+        convl_cache_kernel<R, Border, TX, TY, T><<<grid, block, 0, stream>>>(in, out, in_image_stride, out_image_stride, slot);
         T_CONVL_CHECK_CUDA(cudaGetLastError());
     }
 }

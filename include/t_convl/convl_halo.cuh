@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef __CUDACC__
-#error "conv_halo.cuh must be compiled by nvcc"
+#error "convl_halo.cuh must be compiled by nvcc"
 #endif
 
 #include "boundary.hpp"
@@ -26,16 +26,16 @@ namespace tiled_convolution
 
         static constexpr int threads = TX * TY;
         static constexpr int stride = (TX % 32 == 0) ? in_w : in_w + (((TX - in_w) % 32) + 32) % 32;
-        static constexpr std::size_t mem_bytes = sizeof(float) * static_cast<size_t>(in_h) * static_cast<size_t>(stride);
+        static constexpr std::size_t smem_bytes = sizeof(float) * static_cast<size_t>(in_h) * static_cast<size_t>(stride);
 
-        static_assert(R >= 0 && R <= max_filter_radius, "adius in the bank is outside [0, max_filter_radius]" + std::to_string(max_filter_width));
+        static_assert(R >= 0 && R <= max_filter_radius, "radius in the bank is outside [0, max_filter_radius]");
         static_assert(threads % 32 == 0, "block size is not a multiple of 32");
         static_assert(threads <= 1024, "thread block size surpasses hardware limits(1024 threads per block)");
         static_assert(TX % 32 == 0 || 32 % TX == 0, "TX must be divide 32 or be a multiple of 32");
     };
 
     template <int R, typename Border, int TX, int TY, typename T>
-    __global__ void __launch_bounds__(TX * TY) conv_halo_kernel(Image<const T> in, Image<float> out, std::ptrdiff_t in_image_stride, std::ptrdiff_t out_image_stride, int slot)
+    __global__ void __launch_bounds__(TX * TY) convl_halo_kernel(Image<const T> in, Image<float> out, std::ptrdiff_t in_image_stride, std::ptrdiff_t out_image_stride, int slot)
     {
         using G = HaloGeometry<R, TX, TY>; //local aliad so its G::in_w rather than 'full template name'::in_w
         __shared__ float tile[G::in_h * G::stride]; 
@@ -94,12 +94,12 @@ namespace tiled_convolution
             throw std::invalid_argument("batch size is out of range");
         if(batch > 1)
         {
-            const std::ptrdiff_t in.min = static_cast<ptrdiff_t>(in.pitch) * in.height; 
-            const std::ptrdiff_t out.min = static_cast<ptrdiff_t>(out.pitch) * out.height;
-            if(in_image_stride < in.min)
+            const std::ptrdiff_t in_min = static_cast<ptrdiff_t>(in.pitch) * in.height; 
+            const std::ptrdiff_t out_min = static_cast<ptrdiff_t>(out.pitch) * out.height;
+            if(in_image_stride < in_min)
                 throw std::out_of_range("input image stride is less than input minimum");
             
-            if(out_image_stride < out.min)
+            if(out_image_stride < out_min)
                 throw std::out_of_range("output image stride is less than the output minimum");
         }
 
@@ -108,7 +108,7 @@ namespace tiled_convolution
         const dim3 blockDim(TX, TY, 1);
         const dim3 gridDim((in.width + TX - 1) / TX, (in.height + TY - 1) / TY, batch);
 
-        conv_halo_kernel<R, Border, TX, TY, T><<<gridDim, blockDim, 0, stream>>>(in, out, in_image_stride, out_image_stride, slot);
+        convl_halo_kernel<R, Border, TX, TY, T><<<gridDim, blockDim, 0, stream>>>(in, out, in_image_stride, out_image_stride, slot);
 
         T_CONVL_CHECK_CUDA(cudaGetLastError());        
     }

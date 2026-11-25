@@ -1,5 +1,5 @@
 /*
-Correctness of both tiled kernels (conv_halo.cuh, conv_cache.cuh) against the host reference.
+Correctness of both tiled kernels (convl_halo.cuh, convl_cache.cuh) against the host reference.
 
 Part 1 (host only): both launchers reject bad requests before anything reaches the GPU.
 Part 2 (GPU): known-answer tests (identity, convention, determinism), then a sweep over
@@ -50,7 +50,7 @@ struct HaloKernel
     static void launch(Image<const T> in, Image<float> out, int slot, cudaStream_t s,
                        int batch = 1, std::ptrdiff_t in_stride = 0, std::ptrdiff_t out_stride = 0)
     {
-        conv_halo<R, Border, TX, TY>(in, out, slot, s, batch, in_stride, out_stride);
+        convl_halo<R, Border, TX, TY>(in, out, slot, s, batch, in_stride, out_stride);
     }
 };
 
@@ -62,7 +62,7 @@ struct CacheKernel
     static void launch(Image<const T> in, Image<float> out, int slot, cudaStream_t s,
                        int batch = 1, std::ptrdiff_t in_stride = 0, std::ptrdiff_t out_stride = 0)
     {
-        conv_cache<R, Border, TX, TY>(in, out, slot, s, batch, in_stride, out_stride);
+        convl_cache<R, Border, TX, TY>(in, out, slot, s, batch, in_stride, out_stride);
     }
 };
 

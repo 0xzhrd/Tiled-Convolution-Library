@@ -42,15 +42,15 @@ namespace tiled_convolution
                 {
                     cudaFree(ptr_);
                     ptr_ = std::exchange(other.ptr_, nullptr);
-                    count_ = std::Exchange(other.count_, 0);
+                    count_ = std::exchange(other.count_, 0);
                 }
                 return *this;
             }
 
             T *data() {return ptr_;}
-            const T *data() {return ptr_;}
-            std::size_t size() {return(count_;)}
-            std::size_t bytes() {return(count * sizeof(T));}
+            const T *data() const {return ptr_;}
+            std::size_t size() const {return(count_);}
+            std::size_t bytes() const {return(count_ * sizeof(T));}
             void upload(const std::vector<T> &host, cudaStream_t stream)
             {
                 check_count(host.size(), "upload");
@@ -70,10 +70,12 @@ namespace tiled_convolution
                 T_CONVL_CHECK_CUDA(cudaMemsetAsync(ptr_, 0xFF, bytes(), stream));
             }
         private:
-            check_count(std::size_t n, const char * what) const
+            void check_count(std::size_t n, const char *what) const
             {
-                if(n != count)
-                    throw std::invalid_argument("check count operation");
+                if(n != count_)
+                    throw std::invalid_argument(std::string("DeviceBuffer::") + what +": host has" +
+                                            std::to_string(n) + " elements, device has " + 
+                                            std::to_string(count_));
             }
 
             T *ptr_ = nullptr;
@@ -95,7 +97,7 @@ namespace tiled_convolution
                 }
                     
                 const size_t row_bytes = static_cast<size_t>(width) * sizeof(T);
-                const int rows = static_cast<size_t>(height) * batch;
+                const size_t rows = static_cast<size_t>(height) * batch;
                 T_CONVL_CHECK_CUDA(cudaMallocPitch(&ptr_, &pitch_bytes_, row_bytes, rows));
             }
 
@@ -155,15 +157,15 @@ namespace tiled_convolution
             std::vector<T> download(cudaStream_t stream) const
             {
                 std::vector<T> host(element_count());
-                const std::size_t row_bytes = static_cast<std::size_t>(width) * sizeof(T);
-                T_CONVL_CHECK_CUDA(cudaMemcpy2DAsync(host.data(), row_bytes, ptr_, pitch_bytes, row_bytes, total_rows(), cudaMemcpyDefault, stream));
+                const std::size_t row_bytes = static_cast<std::size_t>(width_) * sizeof(T);
+                T_CONVL_CHECK_CUDA(cudaMemcpy2DAsync(host.data(), row_bytes, ptr_, pitch_bytes_, row_bytes, total_rows(), cudaMemcpyDeviceToHost, stream));
                 T_CONVL_CHECK_CUDA(cudaStreamSynchronize(stream));
                 return(host);
             }
 
             void poison(cudaStream_t stream)
             {
-                T_CONVL_CHECK_CUDA(cudaMemsetAsync(ptr_, 0xFF, pitch_bytes_ * total_rowsa(), stream));
+                T_CONVL_CHECK_CUDA(cudaMemsetAsync(ptr_, 0xFF, pitch_bytes_ * total_rows(), stream));
             }
 
         private:

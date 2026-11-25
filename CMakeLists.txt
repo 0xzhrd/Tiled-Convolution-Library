@@ -86,14 +86,14 @@ find_path(CUDNN_INCLUDE_DIR cudnn.h
     PATH_SUFFIXES include include/x86_64-linux-gnu)
 find_library(CUDNN_LIBRARY NAMES cudnn libcudnn.so.9
     HINTS ${CUDNN_ROOT} $ENV{CUDNN_ROOT} ${CUDAToolkit_LIBRARY_DIR}
-    PATH_SIFFIXES lib lib64 lib/x86_64-linux-gnu)
+    PATH_SUFFIXES lib lib64 lib/x86_64-linux-gnu)
 
 if(NOT CUDNN_INCLUDE_DIR OR NOT CUDNN_LIBRARY OR NOT TARGET CUDA::nppif)
-    message(WARNING "tiled_convolution: cuDNN or NPP not found; test_vaselines and bench are not built. "
+    message(WARNING "tiled_convolution: cuDNN or NPP not found; test_baselines and bench are not built. "
                     "set CUDNN_ROOT to your cuDNN install.")
     return()
 endif()
-messgae(STATUS "tiled_convolution: cuDNN ${CUDNN_LIBRARY}")
+message(STATUS "tiled_convolution: cuDNN ${CUDNN_LIBRARY}")
 
 add_library(t_convl_baselines INTERFACE)
 target_include_directories(t_convl_baselines INTERFACE benchmarks/baselines
@@ -103,12 +103,12 @@ target_link_libraries(t_convl_baselines INTERFACE ${CUDNN_LIBRARY} CUDA::nppif C
 if(T_CONVL_WITH_OPENCV)
     find_package(OpenCV REQUIRED COMPONENTS core cudafilters)
     target_compile_definitions(t_convl_baselines INTERFACE T_CONVL_WITH_OPENCV)
-    target_link_libraries(t_convl_baslines INTERFACE ${OpenCV_LIBS})
-    target_include_directories(t_convl_baselines interface ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(t_convl_basleines INTERFACE ${OpenCV_LIBS})
+    target_include_directories(t_convl_baselines INTERFACE ${OpenCV_INCLUDE_DIRS})
 endif()
 
 add_executable(test_baselines tests/test_baselines.cu)
-target_include_directories(test_baselines PRIVATE tiled_convolution t_convl_baselines)
+target_link_libraries(test_baselines PRIVATE tiled_convolution t_convl_baselines)
 t_convl_warnings(test_baselines)
 add_test(NAME test_baselines COMMAND test_baselines)
 set_tests_properties(test_baselines PROPERTIES SKIP_RETURN_CODE 77)
